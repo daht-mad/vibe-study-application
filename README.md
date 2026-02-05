@@ -45,25 +45,25 @@ ChatGPT에게 "이거 어떻게 해?"라고 묻는 것과, Claude Code에게 "�
 
 ### 2. 스킬 설치
 
-**방법 A: GitHub에서 클론**
-```bash
-git clone https://github.com/daht-mad/vibe-study-application.git
-```
+전역 스킬 폴더에 클론하세요:
 
-**방법 B: 직접 다운로드**
-- https://github.com/daht-mad/vibe-study-application 에서 ZIP 다운로드
+```bash
+# Claude Code
+git clone https://github.com/daht-mad/vibe-study-application.git ~/.claude/skills/vibe-study-application
+
+# OpenCode
+git clone https://github.com/daht-mad/vibe-study-application.git ~/.opencode/skills/vibe-study-application
+```
 
 ### 3. 지원서 작성 시작
 
-클론/다운로드한 폴더에서 Claude Code 또는 OpenCode를 실행하세요:
+아무 폴더에서나 Claude Code 또는 OpenCode를 실행하세요:
 
 ```bash
-cd vibe-study-application
-
 # Claude Code
 claude
 
-# 또는 OpenCode  
+# OpenCode  
 opencode
 ```
 
