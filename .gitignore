@@ -1,0 +1,15 @@
+# macOS
+.DS_Store
+
+# MCP config (local)
+.mcp.json
+
+# Node
+node_modules/
+
+# Bun
+bun.lockb
+
+# Environment
+.env
+.env.local
