@@ -13,6 +13,20 @@
 
 ## 기본 사용법
 
+### ⚠️ 실행 방법 (중요!)
+
+**절대 금지**: `bun -e "..."` 인라인 실행 ❌
+- `generatedContent`에 백틱(`)이 포함되어 쉘 파싱 에러 발생
+
+**필수**: 별도 스크립트 파일 생성 후 실행
+
+```bash
+# 스크립트 파일 생성 후 bun run으로 실행
+bun run /path/to/submit-application.ts
+```
+
+### Import
+
 ```typescript
 import { 
   createApplication, 

@@ -193,6 +193,41 @@ A: 노코드로 사이드프로젝트 만들고 싶은 직장인
 
 `scripts/airtable.ts` 사용. 상세 사용법 → [references/airtable-usage.md](references/airtable-usage.md)
 
+### ⚠️ 실행 방법 (중요!)
+
+**절대 금지**: `bun -e "..."` 인라인 실행 ❌
+- `generatedContent`에 백틱(`)이 포함되어 쉘 파싱 에러 발생
+
+**필수**: 별도 스크립트 파일 생성 후 실행
+
+```bash
+# 1. 스크립트 파일 생성 (스킬 폴더 내 또는 tmp)
+# 2. bun run 으로 실행
+bun run /path/to/submit-application.ts
+```
+
+### 스크립트 예시
+
+```typescript
+// submit-application.ts
+import { createApplication } from "/path/to/scripts/airtable.ts";
+
+const app = {
+  name: "홍길동",
+  phone: "01012345678",
+  email: "hong@example.com",
+  // ... 나머지 필드
+  generatedContent: `# 마크다운 내용
+백틱이 포함되어도 OK
+`,
+};
+
+const result = await createApplication(app, "작성중");
+console.log("저장 완료:", result.url);
+```
+
+### API 함수
+
 ```typescript
 import { createApplication, getApplicationByPhone, updateApplication } from "./scripts/airtable.ts";
 
