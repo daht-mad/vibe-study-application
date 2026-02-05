@@ -28,11 +28,9 @@ ChatGPT에게 "이거 어떻게 해?"라고 묻는 것과, Claude Code에게 "�
 
 ### 주제 전환의 맥락
 
-| 기존 주제 | 바이브코딩 전환 |
-|----------|----------------|
-| "GPT로 글쓰기" | "Antigravity에서 md 노트 모아 전자책 출판" |
-| "Make로 자동화" | "Claude Code 스킬로 워크플로우 자동화" |
-| "노코드로 MVP" | "Cursor로 실제 작동하는 앱 만들기" |
+- "GPT로 글쓰기" → "Antigravity에서 md 노트 모아 전자책 출판"
+- "Make로 자동화" → "Claude Code 스킬로 워크플로우 자동화"
+- "노코드로 MVP" → "Cursor로 실제 작동하는 앱 만들기"
 
 스터디장들이 기존에 기획한 주제를 **바이브코딩 관점으로 재해석**할 수 있도록, 이 스킬이 도와줍니다.
 
@@ -47,21 +45,25 @@ ChatGPT에게 "이거 어떻게 해?"라고 묻는 것과, Claude Code에게 "�
 
 ### 2. 스킬 설치
 
+**방법 A: GitHub에서 클론**
 ```bash
-# Claude Code 사용 시
-claude mcp add skill /path/to/vibe-study-application
-
-# OpenCode 사용 시
-opencode skill add /path/to/vibe-study-application
+git clone https://github.com/daht-mad/vibe-study-application.git
 ```
+
+**방법 B: 직접 다운로드**
+- https://github.com/daht-mad/vibe-study-application 에서 ZIP 다운로드
 
 ### 3. 지원서 작성 시작
 
+클론/다운로드한 폴더에서 Claude Code 또는 OpenCode를 실행하세요:
+
 ```bash
+cd vibe-study-application
+
 # Claude Code
 claude
 
-# OpenCode  
+# 또는 OpenCode  
 opencode
 ```
 
@@ -71,7 +73,7 @@ opencode
 스터디 지원서 작성하고 싶어요
 ```
 
-또는
+또는 슬래시 명령어 사용:
 
 ```
 /vibe-study-application
@@ -112,14 +114,11 @@ vibe-study-application/
 
 ## 일정 안내
 
-| 항목 | 일시 |
-|------|------|
-| 스터디장 지원 마감 | 2026.2.12 (수) 오후 3:00 |
-| 선발 결과 회신 | 2026.2.20 (목) 오후 6:00 |
+- **스터디장 지원 마감**: 2026.2.12 (수) 오후 3:00
+- **선발 결과 회신**: 2026.2.20 (목) 오후 6:00
 
-- 마감일까지 언제든 수정 가능 (전화번호로 조회)
-- 선발 후 "작성중" 상태로 게시판 업로드
-- 업로드 후 한 번 더 수정 기회
+마감일까지 언제든 수정 가능 (전화번호로 조회)
+선발 후 "작성중" 상태로 게시판 업로드 → 한 번 더 수정 기회
 
 ---
 
