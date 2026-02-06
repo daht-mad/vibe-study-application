@@ -22,7 +22,7 @@ export interface StudyApplication {
   coLeaderEmail?: string;
   coLeaderBio?: string;
   aiTalkAvailability?: string;
-  studyDays?: string;
+  studyDays?: string | string[];
   offlineMeeting?: string;
 }
 
@@ -123,7 +123,9 @@ export async function createApplication(
   }
 
   if (app.studyDays) {
-    fields["스터디 요일"] = app.studyDays;
+    fields["스터디 요일"] = Array.isArray(app.studyDays)
+      ? app.studyDays
+      : app.studyDays.split(",").map((s: string) => s.trim());
   }
 
   if (app.offlineMeeting) {
@@ -173,7 +175,13 @@ export async function updateApplication(
   for (const [key, value] of Object.entries(updates)) {
     const fieldName = fieldMap[key];
     if (fieldName && value !== undefined) {
-      fields[fieldName] = value;
+      if (key === "studyDays") {
+        fields[fieldName] = Array.isArray(value)
+          ? value
+          : (value as string).split(",").map((s: string) => s.trim());
+      } else {
+        fields[fieldName] = value;
+      }
     }
   }
 
