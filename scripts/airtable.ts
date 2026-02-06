@@ -21,6 +21,7 @@ export interface StudyApplication {
   coLeaderPhone?: string;
   coLeaderEmail?: string;
   coLeaderBio?: string;
+  aiTalkAvailability?: string;
 }
 
 interface AirtableRecord {
@@ -115,6 +116,10 @@ export async function createApplication(
     fields["공동스터디장 이력"] = app.coLeaderBio;
   }
 
+  if (app.aiTalkAvailability) {
+    fields["AI토크 가능여부"] = app.aiTalkAvailability;
+  }
+
   const result: AirtableResponse = await airtableRequest("POST", "", {
     records: [{ fields }],
   });
@@ -147,6 +152,7 @@ export async function updateApplication(
     coLeaderPhone: "공동스터디장 연락처",
     coLeaderEmail: "공동스터디장 이메일",
     coLeaderBio: "공동스터디장 이력",
+    aiTalkAvailability: "AI토크 가능여부",
     bettermodeUrl: "Bettermode URL",
     status: "상태",
   };

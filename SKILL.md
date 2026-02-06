@@ -83,6 +83,22 @@ description: |
 - 이력 소개 (3-4개 불릿)
 - 공동스터디장 여부 (있으면: 성함, 연락처, 이메일, 이력)
 
+### Phase 5-1: AI토크 가능여부
+
+선택한 카테고리에 맞는 AI토크 일정 참여 가능 여부를 확인:
+
+```
+아래 카테고리에 맞는 AI토크 일정에 참여 가능하신가요? (복수 선택 가능)
+시간: 21:00~23:00
+
+1. 3/3(화) 개발&자동화
+2. 3/4(수) 콘텐츠&지식
+3. 3/5(목) 업무&비즈니스
+4. 참여 안 함
+```
+
+선택 결과를 Airtable의 `AI토크 가능여부` 필드에 저장.
+
 ### Phase 6: 확인 + 저장
 
 #### 6-1. 기존 지원서 확인
@@ -216,10 +232,16 @@ const app = {
   name: "홍길동",
   phone: "01012345678",
   email: "hong@example.com",
-  // ... 나머지 필드
+  bio: "• 지피터스 20기\n• Claude Code 경험",
+  category: "개발&자동화",
+  tool: "Claude Code",
+  difficulty: "입문",
+  generatedTitle: "제목",
   generatedContent: `# 마크다운 내용
 백틱이 포함되어도 OK
 `,
+  qaRaw: "Q&A 원본 텍스트",
+  aiTalkAvailability: "3/3(화) 개발&자동화, 3/4(수) 콘텐츠&지식",
 };
 
 const result = await createApplication(app, "작성중");
