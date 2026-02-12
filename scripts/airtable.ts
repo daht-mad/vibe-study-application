@@ -224,28 +224,28 @@ export async function getActiveCohort(): Promise<CohortInfo | null> {
     COHORT_TABLE_ID
   );
 
-  let nearest: { record: AirtableRecord; deadline: Date } | null = null;
+  let closest: { record: AirtableRecord; deadline: Date; diff: number } | null = null;
 
   for (const record of result.records) {
     const deadlineStr = record.fields["스터디장지원마감일"];
     if (!deadlineStr) continue;
 
     const deadline = new Date(deadlineStr);
-    if (deadline > now) {
-      if (!nearest || deadline < nearest.deadline) {
-        nearest = { record, deadline };
-      }
+    const diff = Math.abs(deadline.getTime() - now.getTime());
+
+    if (!closest || diff < closest.diff) {
+      closest = { record, deadline, diff };
     }
   }
 
-  if (!nearest) return null;
+  if (!closest) return null;
 
-  const selectionStr = nearest.record.fields["스터디장선발회신일"];
+  const selectionStr = closest.record.fields["스터디장선발회신일"];
   return {
-    recordId: nearest.record.id,
-    name: nearest.record.fields["기수명"] || `${nearest.record.fields["기수"]}기`,
-    number: nearest.record.fields["기수"],
-    deadline: nearest.deadline,
+    recordId: closest.record.id,
+    name: closest.record.fields["기수명"] || `${closest.record.fields["기수"]}기`,
+    number: closest.record.fields["기수"],
+    deadline: closest.deadline,
     selectionDate: selectionStr ? new Date(selectionStr) : null,
   };
 }
