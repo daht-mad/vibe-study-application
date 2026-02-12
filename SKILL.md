@@ -35,6 +35,34 @@ description: |
 
 ## Workflow
 
+### Phase 0: 지원 마감일 확인 (자동)
+
+스킬 시작 시 **반드시** 기수관리 테이블에서 마감일을 확인:
+
+```typescript
+import { checkApplicationDeadline } from "./scripts/airtable.ts";
+
+const { allowed, cohort, message } = await checkApplicationDeadline();
+```
+
+**마감된 경우 (`allowed === false`):**
+```
+❌ 현재 스터디장 지원 접수 기간이 아닙니다.
+[message 내용 표시]
+
+다음 기수 모집이 시작되면 다시 이용해주세요!
+```
+→ **즉시 종료. 인터뷰 진행하지 않음.**
+
+**접수 가능한 경우 (`allowed === true`):**
+```
+✅ [cohort.name] 스터디장 지원서 작성을 시작합니다!
+📅 지원 마감: [cohort.deadline을 KST로 표시]
+
+마감일 이후에는 제출이 불가하니, 시간 여유를 두고 작성해주세요.
+```
+→ `cohort` 정보를 이후 Phase에서 활용 (일정 안내 등)
+
 ### Phase 1: 기존 주제 확인
 
 기획하신 스터디 주제가 어떤 건지 질문. 자유롭게 말하게 유도.
@@ -157,13 +185,15 @@ const existing = await getApplicationByPhone(phone);
 
 #### 6-4. 저장 완료 후 안내
 
+Phase 0에서 조회한 `cohort` 정보를 활용하여 동적으로 일정 표시:
+
 ```
 ✅ 지원서가 [임시저장/제출완료] 되었습니다!
 
 📋 일정 안내
 ━━━━━━━━━━━━━━━━━━━━━━━━━━
-📅 스터디장 지원마감: 2026.2.12 (수) 오후 3:00
-📅 선발결과 회신: 2026.2.20 (목) 오후 6:00
+📅 스터디장 지원마감: [cohort.deadline을 KST로 표시]
+📅 선발결과 회신: [cohort.selectionDate를 KST로 표시]
 ━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 💡 마감일까지 수정 가능 (전화번호로 조회)
@@ -280,15 +310,18 @@ console.log("저장 완료:", result.url);
 ### API 함수
 
 ```typescript
-import { createApplication, getApplicationByPhone, updateApplication } from "./scripts/airtable.ts";
+import { createApplication, getApplicationByPhone, updateApplication, checkApplicationDeadline } from "./scripts/airtable.ts";
+
+// 마감일 확인 (스킬 시작 시 반드시 호출)
+const { allowed, cohort, message } = await checkApplicationDeadline();
 
 // 조회
 const existing = await getApplicationByPhone("01012345678");
 
-// 생성 (임시저장)
+// 생성 (임시저장) - 내부에서 마감일 자동 체크
 await createApplication(app, "작성중");
 
-// 생성 (최종 제출)
+// 생성 (최종 제출) - 내부에서 마감일 자동 체크
 await createApplication(app, "제출완료");
 
 // 업데이트
@@ -298,6 +331,7 @@ await updateApplication(existingId, { status: "제출완료" });
 ### CLI 테스트
 
 ```bash
-bun run scripts/airtable.ts --test         # 연결 테스트
-bun run scripts/airtable.ts --create-test  # 생성 테스트
+bun run scripts/airtable.ts --test            # 연결 테스트
+bun run scripts/airtable.ts --create-test     # 생성 테스트
+bun run scripts/airtable.ts --check-deadline  # 마감일 확인
 ```

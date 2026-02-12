@@ -3,6 +3,7 @@
 const AIRTABLE_API_KEY = "patVBnYfJ6iOrQN08.e851189b98ca38b4ce1eb7c764ca08f04c830d97103cba88018c9e4944a3717b";
 const AIRTABLE_BASE_ID = "app8McJxchG5oZ9d8";
 const AIRTABLE_TABLE_ID = "tbl5tMLZDfzHbcmrO";
+const COHORT_TABLE_ID = "tblLs3KrhQHm1sxjQ";
 
 export interface StudyApplication {
   name: string;
@@ -40,9 +41,10 @@ interface AirtableResponse {
 async function airtableRequest(
   method: string,
   path: string = "",
-  body?: Record<string, any>
+  body?: Record<string, any>,
+  tableId: string = AIRTABLE_TABLE_ID
 ): Promise<any> {
-  const url = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${AIRTABLE_TABLE_ID}${path}`;
+  const url = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${tableId}${path}`;
 
   const options: RequestInit = {
     method,
@@ -83,6 +85,11 @@ export async function createApplication(
   app: StudyApplication,
   status: ApplicationStatus = "제출완료"
 ): Promise<{ id: string; url: string }> {
+  const { allowed, message } = await checkApplicationDeadline();
+  if (!allowed) {
+    throw new Error(message);
+  }
+
   validateApplication(app);
 
   const fields: Record<string, any> = {
@@ -200,6 +207,93 @@ export async function getApplicationByPhone(phone: string): Promise<AirtableReco
   return result.records.length > 0 ? result.records[0] : null;
 }
 
+export interface CohortInfo {
+  recordId: string;
+  name: string;
+  number: number;
+  deadline: Date;
+  selectionDate: Date | null;
+}
+
+export async function getActiveCohort(): Promise<CohortInfo | null> {
+  const now = new Date();
+  const result: AirtableResponse = await airtableRequest(
+    "GET",
+    "",
+    undefined,
+    COHORT_TABLE_ID
+  );
+
+  let nearest: { record: AirtableRecord; deadline: Date } | null = null;
+
+  for (const record of result.records) {
+    const deadlineStr = record.fields["스터디장지원마감일"];
+    if (!deadlineStr) continue;
+
+    const deadline = new Date(deadlineStr);
+    if (deadline > now) {
+      if (!nearest || deadline < nearest.deadline) {
+        nearest = { record, deadline };
+      }
+    }
+  }
+
+  if (!nearest) return null;
+
+  const selectionStr = nearest.record.fields["스터디장선발회신일"];
+  return {
+    recordId: nearest.record.id,
+    name: nearest.record.fields["기수명"] || `${nearest.record.fields["기수"]}기`,
+    number: nearest.record.fields["기수"],
+    deadline: nearest.deadline,
+    selectionDate: selectionStr ? new Date(selectionStr) : null,
+  };
+}
+
+export async function checkApplicationDeadline(): Promise<{
+  allowed: boolean;
+  cohort: CohortInfo | null;
+  message: string;
+}> {
+  const cohort = await getActiveCohort();
+
+  if (!cohort) {
+    return {
+      allowed: false,
+      cohort: null,
+      message: "현재 스터디장 지원 접수 기간이 아닙니다. 모든 기수의 지원 마감일이 지났습니다.",
+    };
+  }
+
+  const now = new Date();
+  if (now > cohort.deadline) {
+    return {
+      allowed: false,
+      cohort,
+      message: `${cohort.name} 스터디장 지원이 마감되었습니다. (마감: ${formatKST(cohort.deadline)})`,
+    };
+  }
+
+  return {
+    allowed: true,
+    cohort,
+    message: `${cohort.name} 스터디장 지원 접수 중입니다. (마감: ${formatKST(cohort.deadline)})`,
+  };
+}
+
+function formatKST(date: Date): string {
+  return date.toLocaleString("ko-KR", {
+    timeZone: "Asia/Seoul",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    weekday: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  });
+}
+
 export async function testConnection(): Promise<void> {
   console.log("🔍 Airtable 연결 테스트 시작...\n");
 
@@ -262,11 +356,25 @@ if (import.meta.main) {
     testConnection();
   } else if (args.includes("--create-test")) {
     testCreateApplication();
+  } else if (args.includes("--check-deadline")) {
+    checkApplicationDeadline().then((result) => {
+      console.log("📅 지원 마감일 확인\n");
+      console.log(`  상태: ${result.allowed ? "✅ 접수 가능" : "❌ 접수 마감"}`);
+      console.log(`  메시지: ${result.message}`);
+      if (result.cohort) {
+        console.log(`  기수: ${result.cohort.name}`);
+        console.log(`  마감일: ${formatKST(result.cohort.deadline)}`);
+        if (result.cohort.selectionDate) {
+          console.log(`  선발회신일: ${formatKST(result.cohort.selectionDate)}`);
+        }
+      }
+    });
   } else {
     console.log("사용법:");
-    console.log("  bun run airtable.ts --test         # 연결 테스트");
-    console.log("  bun run airtable.ts --create-test  # 지원서 생성 테스트");
+    console.log("  bun run airtable.ts --test            # 연결 테스트");
+    console.log("  bun run airtable.ts --create-test     # 지원서 생성 테스트");
+    console.log("  bun run airtable.ts --check-deadline  # 마감일 확인");
     console.log("\n또는 스크립트에서 import하여 사용:");
-    console.log('  import { createApplication } from "./airtable.ts";');
+    console.log('  import { createApplication, checkApplicationDeadline } from "./airtable.ts";');
   }
 }
