@@ -35,33 +35,35 @@ description: |
 
 ## Workflow
 
-### Phase 0: 지원 마감일 확인 (자동)
+### Phase 0: 지원 마감일 확인 (⚠️ 최우선 실행 - 스킵 절대 금지)
 
-스킬 시작 시 **반드시** 기수관리 테이블에서 마감일을 확인:
+**이 Phase는 사용자에게 어떤 말도 하기 전에 반드시 먼저 실행해야 합니다.**
+인사, 안내, 질문 등 모든 대화를 시작하기 전에 아래 명령을 Bash로 실행하세요.
 
-```typescript
-import { checkApplicationDeadline } from "./scripts/airtable.ts";
-
-const { allowed, cohort, message } = await checkApplicationDeadline();
+```bash
+bun run /Users/yeonkwon/vibe-study-application/scripts/airtable.ts --check-deadline
 ```
 
-**마감된 경우 (`allowed === false`):**
+출력 결과에서 "접수 가능" 또는 "접수 마감"을 확인합니다.
+
+**❌ "접수 마감"인 경우 → 즉시 종료:**
 ```
 ❌ 현재 스터디장 지원 접수 기간이 아닙니다.
-[message 내용 표시]
+[출력된 메시지 그대로 표시]
 
 다음 기수 모집이 시작되면 다시 이용해주세요!
 ```
-→ **즉시 종료. 인터뷰 진행하지 않음.**
+→ **인터뷰를 시작하지 않고 여기서 대화를 종료합니다. Phase 1로 절대 넘어가지 마세요.**
 
-**접수 가능한 경우 (`allowed === true`):**
+**✅ "접수 가능"인 경우 → 진행:**
+출력에서 기수명, 마감일, 선발회신일을 메모해두고 이후 Phase에서 활용합니다.
 ```
-✅ [cohort.name] 스터디장 지원서 작성을 시작합니다!
-📅 지원 마감: [cohort.deadline을 KST로 표시]
+✅ [기수명] 스터디장 지원서 작성을 시작합니다!
+📅 지원 마감: [마감일]
 
 마감일 이후에는 제출이 불가하니, 시간 여유를 두고 작성해주세요.
 ```
-→ `cohort` 정보를 이후 Phase에서 활용 (일정 안내 등)
+→ Phase 1로 진행
 
 ### Phase 1: 기존 주제 확인
 
