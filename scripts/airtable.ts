@@ -265,12 +265,16 @@ export async function checkApplicationDeadline(): Promise<{
     };
   }
 
+  // TEMP: 임시 마감 연장 — 2026-02-12 17:30 KST (끝나면 원복할 것)
+  const tempExtendedDeadline = new Date("2026-02-12T08:30:00.000Z");
+  const effectiveDeadline = cohort.deadline < tempExtendedDeadline ? tempExtendedDeadline : cohort.deadline;
+
   const now = new Date();
-  if (now > cohort.deadline) {
+  if (now > effectiveDeadline) {
     return {
       allowed: false,
       cohort,
-      message: `${cohort.name} 스터디장 지원이 마감되었습니다. (마감: ${formatKST(cohort.deadline)})`,
+      message: `${cohort.name} 스터디장 지원이 마감되었습니다. (마감: ${formatKST(effectiveDeadline)})`,
     };
   }
 
