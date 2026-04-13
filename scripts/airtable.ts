@@ -214,6 +214,33 @@ export async function getApplicationByPhone(phone: string): Promise<AirtableReco
   return result.records.length > 0 ? result.records[0] : null;
 }
 
+/** 현재 기수의 제출완료 지원서 목록을 가져온다 */
+export async function getSubmittedApplications(): Promise<{ title: string; category: string; difficulty: string; tool: string }[]> {
+  const cohort = await getActiveCohort();
+  if (!cohort) return [];
+
+  const formula = encodeURIComponent(`{상태} = "제출완료"`);
+  const result: AirtableResponse = await airtableRequest(
+    "GET",
+    `?filterByFormula=${formula}`
+  );
+
+  return result.records
+    .filter((r) => {
+      const gisu = r.fields["기수"];
+      if (!gisu) return false;
+      // 링크 필드는 레코드 ID 배열로 올 수 있음
+      const gisuIds = Array.isArray(gisu) ? gisu : [gisu];
+      return gisuIds.includes(cohort.recordId);
+    })
+    .map((r) => ({
+      title: r.fields["생성된 제목"] || "(제목 없음)",
+      category: r.fields["카테고리"] || "",
+      difficulty: r.fields["난이도"] || "",
+      tool: r.fields["바이브코딩 도구"] || "",
+    }));
+}
+
 // --- 기수관리 테이블 동적 조회 ---
 
 export interface CohortInfo {
@@ -493,6 +520,16 @@ if (import.meta.main) {
 
   if (args.includes("--check-deadline")) {
     checkDeadline();
+  } else if (args.includes("--list")) {
+    const apps = await getSubmittedApplications();
+    if (apps.length === 0) {
+      console.log("📋 현재 기수에 제출된 지원서가 없습니다.");
+    } else {
+      console.log(`📋 현재 기수 제출완료 지원서 (${apps.length}건):\n`);
+      for (const app of apps) {
+        console.log(`  • ${app.category} / ${app.difficulty} / ${app.tool} — "${app.title}"`);
+      }
+    }
   } else if (args.includes("--test")) {
     testConnection();
   } else if (args.includes("--create-test")) {
@@ -500,9 +537,10 @@ if (import.meta.main) {
   } else {
     console.log("사용법:");
     console.log("  bun run airtable.ts --check-deadline  # 접수 가능 여부 확인");
+    console.log("  bun run airtable.ts --list            # 현재 기수 제출 지원서 목록");
     console.log("  bun run airtable.ts --test            # 연결 테스트");
     console.log("  bun run airtable.ts --create-test     # 지원서 생성 테스트");
     console.log("\n또는 스크립트에서 import하여 사용:");
-    console.log('  import { createApplication, getCurrentGisu, checkApplicationDeadline } from "./airtable.ts";');
+    console.log('  import { createApplication, getCurrentGisu, checkApplicationDeadline, getSubmittedApplications } from "./airtable.ts";');
   }
 }
