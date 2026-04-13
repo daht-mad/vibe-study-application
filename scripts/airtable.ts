@@ -85,7 +85,7 @@ export async function createApplication(
   app: StudyApplication,
   status: ApplicationStatus = "제출완료"
 ): Promise<{ id: string; url: string }> {
-  const { allowed, message } = await checkApplicationDeadline();
+  const { allowed, cohort, message } = await checkApplicationDeadline();
   if (!allowed) {
     throw new Error(message);
   }
@@ -106,6 +106,11 @@ export async function createApplication(
     "상태": status,
     "제출일시": new Date().toISOString(),
   };
+
+  // 현재 접수 중인 기수를 링크 필드로 연결
+  if (cohort) {
+    fields["기수"] = [cohort.recordId];
+  }
 
   if (app.difficulty === "중급" || app.difficulty === "고급") {
     fields["사전학습 영상"] = app.prereqVideo;
@@ -141,6 +146,7 @@ export async function createApplication(
 
   const result: AirtableResponse = await airtableRequest("POST", "", {
     records: [{ fields }],
+    typecast: true,
   });
 
   const record = result.records[0];
@@ -194,6 +200,7 @@ export async function updateApplication(
 
   await airtableRequest("PATCH", "", {
     records: [{ id: recordId, fields }],
+    typecast: true,
   });
 }
 
