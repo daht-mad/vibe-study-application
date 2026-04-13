@@ -207,32 +207,100 @@ export async function getApplicationByPhone(phone: string): Promise<AirtableReco
   return result.records.length > 0 ? result.records[0] : null;
 }
 
+// --- 기수관리 테이블 동적 조회 ---
+
 export interface CohortInfo {
   recordId: string;
   name: string;
   number: number;
   deadline: Date;
   selectionDate: Date | null;
+  startDate: Date | null;
 }
 
-export async function getActiveCohort(): Promise<CohortInfo | null> {
-  const now = new Date();
+export interface GisuSchedule {
+  기수명: string;
+  기수: number;
+  스터디장지원시작일?: string;
+  스터디장지원마감일?: string;
+  스터디장선발회신일?: string;
+  모집시작일?: string;
+  모집마감일?: string;
+  스터디시작일?: string;
+  스터디종료일?: string;
+  스터디시간?: string;
+  recordId?: string;
+}
+
+async function fetchCohortRecords(): Promise<AirtableRecord[]> {
   const result: AirtableResponse = await airtableRequest(
     "GET",
     "",
     undefined,
     COHORT_TABLE_ID
   );
+  return result.records;
+}
 
+/** 현재 접수 가능한 기수를 찾는다 (지원시작일 <= now <= 지원마감일) */
+export async function getCurrentGisu(): Promise<GisuSchedule | null> {
+  const records = await fetchCohortRecords();
+  const now = new Date();
+
+  for (const record of records) {
+    const f = record.fields;
+    if (!f["스터디장지원마감일"]) continue;
+    const deadline = new Date(f["스터디장지원마감일"]);
+    const start = f["스터디장지원시작일"] ? new Date(f["스터디장지원시작일"]) : new Date(0);
+    if (start <= now && now <= deadline) {
+      return { ...f, recordId: record.id } as GisuSchedule;
+    }
+  }
+
+  return null;
+}
+
+/** 다음 예정된 기수를 찾는다 (지원시작일이 미래인 것 중 가장 빠른 것) */
+export async function getNextGisu(): Promise<GisuSchedule | null> {
+  const records = await fetchCohortRecords();
+  const now = new Date();
+
+  const future = records
+    .filter((r) => {
+      const start = r.fields["스터디장지원시작일"] ? new Date(r.fields["스터디장지원시작일"]) : null;
+      return start && start > now;
+    })
+    .sort((a, b) =>
+      new Date(a.fields["스터디장지원시작일"]).getTime() - new Date(b.fields["스터디장지원시작일"]).getTime()
+    );
+
+  return future.length > 0 ? { ...future[0].fields, recordId: future[0].id } as GisuSchedule : null;
+}
+
+export async function getActiveCohort(): Promise<CohortInfo | null> {
+  // 먼저 접수 중인 기수를 찾는다
+  const current = await getCurrentGisu();
+  if (current && current.스터디장지원마감일) {
+    return {
+      recordId: current.recordId || "",
+      name: current.기수명 || `${current.기수}기`,
+      number: current.기수,
+      deadline: new Date(current.스터디장지원마감일),
+      selectionDate: current.스터디장선발회신일 ? new Date(current.스터디장선발회신일) : null,
+      startDate: current.스터디시작일 ? new Date(current.스터디시작일) : null,
+    };
+  }
+
+  // 접수 중인 기수가 없으면 가장 가까운 마감일 기수를 반환
+  const records = await fetchCohortRecords();
+  const now = new Date();
   let closest: { record: AirtableRecord; deadline: Date; diff: number } | null = null;
 
-  for (const record of result.records) {
+  for (const record of records) {
     const deadlineStr = record.fields["스터디장지원마감일"];
     if (!deadlineStr) continue;
-
     const deadline = new Date(deadlineStr);
     const diff = Math.abs(deadline.getTime() - now.getTime());
-
     if (!closest || diff < closest.diff) {
       closest = { record, deadline, diff };
     }
@@ -241,12 +309,14 @@ export async function getActiveCohort(): Promise<CohortInfo | null> {
   if (!closest) return null;
 
   const selectionStr = closest.record.fields["스터디장선발회신일"];
+  const startStr = closest.record.fields["스터디시작일"];
   return {
     recordId: closest.record.id,
     name: closest.record.fields["기수명"] || `${closest.record.fields["기수"]}기`,
     number: closest.record.fields["기수"],
     deadline: closest.deadline,
     selectionDate: selectionStr ? new Date(selectionStr) : null,
+    startDate: startStr ? new Date(startStr) : null,
   };
 }
 
@@ -265,16 +335,12 @@ export async function checkApplicationDeadline(): Promise<{
     };
   }
 
-  // TEMP: 임시 마감 연장 — 2026-02-12 17:30 KST (끝나면 원복할 것)
-  const tempExtendedDeadline = new Date("2026-02-12T08:30:00.000Z");
-  const effectiveDeadline = cohort.deadline < tempExtendedDeadline ? tempExtendedDeadline : cohort.deadline;
-
   const now = new Date();
-  if (now > effectiveDeadline) {
+  if (now > cohort.deadline) {
     return {
       allowed: false,
       cohort,
-      message: `${cohort.name} 스터디장 지원이 마감되었습니다. (마감: ${formatKST(effectiveDeadline)})`,
+      message: `${cohort.name} 스터디장 지원이 마감되었습니다. (마감: ${formatKST(cohort.deadline)})`,
     };
   }
 
@@ -296,6 +362,58 @@ function formatKST(date: Date): string {
     minute: "2-digit",
     hour12: true,
   });
+}
+
+function formatDate(iso: string): string {
+  const d = new Date(iso);
+  const days = ["일", "월", "화", "수", "목", "금", "토"];
+  const m = d.getMonth() + 1;
+  const dd = d.getDate();
+  const day = days[d.getDay()];
+  const h = d.getHours();
+  const ampm = h < 12 ? "오전" : "오후";
+  const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+  return `${d.getFullYear()}.${m}.${dd} (${day}) ${ampm} ${h12}:${String(d.getMinutes()).padStart(2, "0")}`;
+}
+
+export async function checkDeadline(): Promise<void> {
+  const current = await getCurrentGisu();
+
+  if (current) {
+    console.log(`✅ 접수 가능 — ${current.기수명}`);
+    console.log(`  📅 지원마감: ${formatDate(current.스터디장지원마감일!)}`);
+    if (current.스터디장선발회신일) {
+      console.log(`  📅 선발회신: ${formatDate(current.스터디장선발회신일)}`);
+    }
+    if (current.스터디시작일) {
+      console.log(`  📅 스터디시작: ${current.스터디시작일}`);
+    }
+    return;
+  }
+
+  const next = await getNextGisu();
+  if (next) {
+    console.log(`❌ 접수 마감 — 현재 접수 중인 기수가 없습니다.`);
+    console.log(`  📅 다음 기수: ${next.기수명}`);
+    if (next.스터디장지원시작일) {
+      console.log(`  📅 지원 시작 예정: ${next.스터디장지원시작일}`);
+    }
+  } else {
+    console.log(`❌ 접수 마감 — 현재 접수 중인 기수가 없고, 예정된 기수도 없습니다.`);
+  }
+}
+
+export async function getScheduleMessage(gisu: GisuSchedule): Promise<string> {
+  const lines = [
+    `📋 일정 안내 — ${gisu.기수명}`,
+    `━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+  ];
+  if (gisu.스터디장지원마감일) lines.push(`📅 스터디장 지원마감: ${formatDate(gisu.스터디장지원마감일)}`);
+  if (gisu.스터디장선발회신일) lines.push(`📅 선발결과 회신: ${formatDate(gisu.스터디장선발회신일)}`);
+  lines.push(`━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+  lines.push(`💡 마감일까지 수정 가능 (전화번호로 조회)`);
+  lines.push(`💡 선발 후 "작성중" 상태로 게시판 업로드 → 한 번 더 수정 기회`);
+  return lines.join("\n");
 }
 
 export async function testConnection(): Promise<void> {
@@ -356,29 +474,18 @@ export async function testCreateApplication(): Promise<void> {
 if (import.meta.main) {
   const args = process.argv.slice(2);
 
-  if (args.includes("--test")) {
+  if (args.includes("--check-deadline")) {
+    checkDeadline();
+  } else if (args.includes("--test")) {
     testConnection();
   } else if (args.includes("--create-test")) {
     testCreateApplication();
-  } else if (args.includes("--check-deadline")) {
-    checkApplicationDeadline().then((result) => {
-      console.log("📅 지원 마감일 확인\n");
-      console.log(`  상태: ${result.allowed ? "✅ 접수 가능" : "❌ 접수 마감"}`);
-      console.log(`  메시지: ${result.message}`);
-      if (result.cohort) {
-        console.log(`  기수: ${result.cohort.name}`);
-        console.log(`  마감일: ${formatKST(result.cohort.deadline)}`);
-        if (result.cohort.selectionDate) {
-          console.log(`  선발회신일: ${formatKST(result.cohort.selectionDate)}`);
-        }
-      }
-    });
   } else {
     console.log("사용법:");
+    console.log("  bun run airtable.ts --check-deadline  # 접수 가능 여부 확인");
     console.log("  bun run airtable.ts --test            # 연결 테스트");
     console.log("  bun run airtable.ts --create-test     # 지원서 생성 테스트");
-    console.log("  bun run airtable.ts --check-deadline  # 마감일 확인");
     console.log("\n또는 스크립트에서 import하여 사용:");
-    console.log('  import { createApplication, checkApplicationDeadline } from "./airtable.ts";');
+    console.log('  import { createApplication, getCurrentGisu, checkApplicationDeadline } from "./airtable.ts";');
   }
 }

@@ -20,7 +20,7 @@ description: |
 ## Step 1: 마감일 확인 (MUST RUN FIRST)
 
 ```bash
-bun run /Users/yeonkwon/vibe-study-application/scripts/airtable.ts --check-deadline
+bun run <이 스킬의 scripts 경로>/airtable.ts --check-deadline
 ```
 
 ## Step 2: 결과에 따라 분기
@@ -189,20 +189,32 @@ const existing = await getApplicationByPhone(phone);
 
 #### 6-4. 저장 완료 후 안내
 
-Phase 0에서 조회한 `cohort` 정보를 활용하여 동적으로 일정 표시:
+`getCurrentGisu()` + `getScheduleMessage()`로 현재 기수의 일정을 동적으로 표시:
 
+```typescript
+import { getCurrentGisu, getScheduleMessage } from "./scripts/airtable.ts";
+
+const gisu = await getCurrentGisu();
+if (gisu) {
+  const msg = await getScheduleMessage(gisu);
+  // 저장 완료 메시지 뒤에 msg 출력
+}
+```
+
+출력 예시:
 ```
 ✅ 지원서가 [임시저장/제출완료] 되었습니다!
 
-📋 일정 안내
+📋 일정 안내 — AI스터디 22기
 ━━━━━━━━━━━━━━━━━━━━━━━━━━
-📅 스터디장 지원마감: [cohort.deadline을 KST로 표시]
-📅 선발결과 회신: [cohort.selectionDate를 KST로 표시]
+📅 스터디장 지원마감: [동적 조회 — getCurrentGisu()]
+📅 선발결과 회신: [동적 조회 — getCurrentGisu()]
 ━━━━━━━━━━━━━━━━━━━━━━━━━━
-
 💡 마감일까지 수정 가능 (전화번호로 조회)
 💡 선발 후 "작성중" 상태로 게시판 업로드 → 한 번 더 수정 기회
 ```
+
+> ⚠️ 날짜를 하드코딩하지 말 것. 항상 `getCurrentGisu()` + `getScheduleMessage()`로 동적 조회.
 
 ---
 
@@ -339,3 +351,29 @@ bun run scripts/airtable.ts --test            # 연결 테스트
 bun run scripts/airtable.ts --create-test     # 생성 테스트
 bun run scripts/airtable.ts --check-deadline  # 마감일 확인
 ```
+
+---
+
+## 확정 전 → 확정 스터디 리스트 레코드 생성 (필드 매핑 가이드)
+
+> **🚨 21기 사고 교훈**: 확정 전 → 확정으로 레코드를 복사할 때 `스터디시간` → `스터디 시간` 매핑이 누락되어 LMS 홈화면 "다가오는 일정"에 스터디 일정이 안 나오는 버그 발생.
+
+스터디장 선발 확정 후 `확정 전 스터디 리스트`(tbluZH7N0lZIRlh5R) → `확정 스터디 리스트`(tblP0bMmo1xuLnX2v)로 레코드를 생성할 때, **반드시 아래 필드를 모두 매핑**해야 합니다.
+
+### 필수 매핑 필드 (필드명 불일치 주의!)
+
+| 확정 전 스터디 (원본) | 확정 스터디 (대상) | 비고 |
+|---|---|---|
+| `스터디시간` (공백 없음) | `스터디 시간` (공백 있음) | ⚠️ 필드명 다름! 21기에 누락됨 |
+| `스터디 시작일` | `스터디 시작일` | 동일 |
+| `주제명` | `주제명` | 동일 |
+| `요일` | `요일` | 확정 전에 없을 수 있음 (배분 시 설정) |
+| `스터디장_이름` | `스터디장 이름` | 필드명 미묘하게 다를 수 있음 — 확인 필수 |
+
+### 체크리스트
+
+확정 스터디 레코드 생성 시:
+- [ ] `스터디시간` → `스터디 시간` 매핑 확인 (LMS 다가오는 일정에 필수!)
+- [ ] `스터디 시작일`, `스터디 종료일` 매핑 확인
+- [ ] `요일` 매핑 확인
+- [ ] 생성 후 검증: 확정 스터디에서 `스터디 시간` 필드가 비어있지 않은지 확인

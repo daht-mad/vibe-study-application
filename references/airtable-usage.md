@@ -94,6 +94,10 @@ await updateApplication(existingId, {
 | `createApplication(app, status)` | 새 지원서 생성 | `{ id, url }` |
 | `getApplicationByPhone(phone)` | 전화번호로 조회 | `AirtableRecord \| null` |
 | `updateApplication(id, updates)` | 레코드 업데이트 | `void` |
+| `getCurrentGisu()` | 현재 접수 가능한 기수 조회 | `GisuSchedule \| null` |
+| `getNextGisu()` | 다음 예정 기수 조회 | `GisuSchedule \| null` |
+| `getScheduleMessage(gisu)` | 기수 일정 안내 메시지 생성 | `string` |
+| `checkDeadline()` | 접수 가능 여부 콘솔 출력 | `void` |
 
 ### ApplicationStatus 타입
 
