@@ -12,7 +12,7 @@ export interface StudyApplication {
   bio: string;
   category: string;
   tool: string;
-  difficulty: "입문" | "중급";
+  difficulty: "입문" | "중급" | "고급";
   prereqVideo?: string;
   prereqKnowledge?: string;
   generatedTitle: string;
@@ -69,12 +69,12 @@ async function airtableRequest(
 }
 
 function validateApplication(app: StudyApplication): void {
-  if (app.difficulty === "중급") {
+  if (app.difficulty === "중급" || app.difficulty === "고급") {
     if (!app.prereqVideo || app.prereqVideo.trim() === "") {
-      throw new Error("중급 난이도는 사전학습 영상 URL이 필수입니다.");
+      throw new Error(`${app.difficulty} 난이도는 사전학습 영상 URL이 필수입니다.`);
     }
     if (!app.prereqKnowledge || app.prereqKnowledge.trim() === "") {
-      throw new Error("중급 난이도는 선수지식이 필수입니다.");
+      throw new Error(`${app.difficulty} 난이도는 선수지식이 필수입니다.`);
     }
   }
 }
@@ -99,7 +99,7 @@ export async function createApplication(
     "이력": app.bio,
     "카테고리": app.category,
     "바이브코딩 도구": app.tool,
-    "난이도": app.difficulty === "입문" ? "입문 🐥" : "중급",
+    "난이도": app.difficulty === "입문" ? "입문 🐥" : app.difficulty,
     "생성된 제목": app.generatedTitle,
     "상세페이지": app.generatedContent,
     "Q&A 원본": app.qaRaw,
@@ -107,7 +107,7 @@ export async function createApplication(
     "제출일시": new Date().toISOString(),
   };
 
-  if (app.difficulty === "중급") {
+  if (app.difficulty === "중급" || app.difficulty === "고급") {
     fields["사전학습 영상"] = app.prereqVideo;
     fields["선수지식"] = app.prereqKnowledge;
   }

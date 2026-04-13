@@ -118,7 +118,7 @@ interface StudyApplication {
   bio: string;            // 이력 (불릿 포인트)
   category: string;       // 카테고리
   tool: string;           // 바이브코딩 도구
-  difficulty: "입문" | "중급";
+  difficulty: "입문" | "중급" | "고급";
   generatedTitle: string; // 생성된 제목
   generatedContent: string; // 상세페이지 마크다운
   qaRaw: string;          // Q&A 원본
@@ -135,11 +135,11 @@ interface StudyApplication {
 }
 ```
 
-### 중급 필수 검증
+### 중급/고급 필수 검증
 
 스크립트에서 자동 검증:
-- `difficulty === "중급"`인 경우 `prereqVideo`, `prereqKnowledge` 필수
-- 미입력 시 에러: "중급 난이도는 사전학습 영상 URL이 필수입니다."
+- `difficulty === "중급"` 또는 `difficulty === "고급"`인 경우 `prereqVideo`, `prereqKnowledge` 필수
+- 미입력 시 에러: "중급/고급 난이도는 사전학습 영상 URL이 필수입니다."
 
 ---
 
