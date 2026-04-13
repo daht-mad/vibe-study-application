@@ -236,6 +236,13 @@ export interface GisuSchedule {
   스터디시작일?: string;
   스터디종료일?: string;
   스터디시간?: string;
+  "1주차오프모임"?: string;
+  AI토크_Day1?: string;
+  AI토크_Day1_주제?: string;
+  AI토크_Day2?: string;
+  AI토크_Day2_주제?: string;
+  AI토크_Day3?: string;
+  AI토크_Day3_주제?: string;
   recordId?: string;
 }
 
@@ -394,6 +401,9 @@ export async function checkDeadline(): Promise<void> {
     }
     if (current.스터디시작일) {
       console.log(`  📅 스터디시작: ${current.스터디시작일}`);
+    }
+    if (current["1주차오프모임"]) {
+      console.log(`  📅 오프모임: ${current["1주차오프모임"]}`);
     }
     return;
   }
