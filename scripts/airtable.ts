@@ -205,13 +205,26 @@ export async function updateApplication(
 }
 
 export async function getApplicationByPhone(phone: string): Promise<AirtableRecord | null> {
+  const cohort = await getActiveCohort();
   const formula = encodeURIComponent(`{전화번호} = "${phone}"`);
   const result: AirtableResponse = await airtableRequest(
     "GET",
     `?filterByFormula=${formula}`
   );
 
-  return result.records.length > 0 ? result.records[0] : null;
+  if (!cohort || result.records.length === 0) {
+    return result.records.length > 0 ? result.records[0] : null;
+  }
+
+  // 현재 기수 지원서만 필터
+  const currentCohortRecord = result.records.find((r) => {
+    const gisu = r.fields["기수"];
+    if (!gisu) return false;
+    const gisuIds = Array.isArray(gisu) ? gisu : [gisu];
+    return gisuIds.includes(cohort.recordId);
+  });
+
+  return currentCohortRecord || null;
 }
 
 /** 현재 기수의 제출완료 지원서 목록을 가져온다 */
